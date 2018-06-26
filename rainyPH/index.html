@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>PH值對酸雨之影響</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="rainyPHcss/main.css">
+    <link rel="stylesheet" type="text/css" href="rainyPHcss/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="rainyPHcss/bootstrap.min.css">
+
+</head>
+
+<body class="background">
+     <form>
+            <p>請輸入PH範圍</p>
+            最高:<input type="text" name="phMax" id="phMax">
+            <br>
+            最低:<input type="text" name="phMin" id="phMin">
+            <br>
+            <input value="設定" type="button" onclick="WritePHValue()">
+        </form>
+    <div style="margin: 0 auto;" class="body">
+        <div class="col-md-6 col-xs-6 col-xs-offset-1 row">
+        <div class="col-md-12 col-xs-12 PH ">
+            <!--<img class="imgset" src="img/PH.png">-->
+            <li class="text">PH值:</li>
+           <p class="bigText text-center"  id="phVal">none</p>
+            <br>
+            <br>
+             <h4><p class="text-center" id="phResult">檢測結果:無</p><h4>
+        </div>
+        <div >
+            <div class=" col-md-6 col-xs-6 weather">
+            <!--<img class="imgset" src="img/rainy.jpg">-->
+            <div class="text-left wettext">下雨檢測:</div>
+            <span class="wetbigtext" id="rainyVal">none</span>
+            <br>
+            <br>
+            <h4><span id="rainResult">檢測結果:無</span></h4>
+            </div>
+              <div class="col-md-6 col-xs-6 livings">
+            <img class="imgset" src="img/waring.png">
+            有無生物:
+            <span id="people">none</span>
+            <br>
+            檢測結果:<span id="redwire">none</span>
+        </div>
+        </div>
+
+        </div>
+        <p></p>
+          <div class="row col-md-5 col-xs-5 right">
+         <div class="fram col-md-10 col-xs-10  wet">
+            <!--<img class="imgset" src="img/wet.png">-->
+             <p class="text-left wettext">土壤濕度:</p>
+            <span class="wetbigtext" id="humidity">none</span>
+                <br>
+                <br>
+                <h4><span id="humResult">檢測結果:無</span></h4>
+        </div>
+        <p>
+         <div class="fram col-md-10 col-xs-10 temp">
+            <img class="imgset" src="img/temperature.png">
+            土壤溫度:
+            <span id="temperature">none</span>
+            <br>
+            檢測結果:<span id="tempResult">無</span>
+        </div>
+        <p>
+        
+        <p></p>
+      
+        <p></p>
+       
+    </div>
+</body>
+</html>
+
+<script>
+    var temperature; //溫度
+    var humidity;    //溼度
+    var phVal;       //PH值
+    var rainyVal;    //雨水感測
+    var redwire;     //人物辨識
+
+    //植物(綠豆)合適環境需求
+    //= 6.5; // pH值5.5以下強酸性土壤應施用1-2公噸/公頃農用石灰 以提高土壤pH值。
+     //= 5.8;
+
+    var humMax = 85;//濕度
+    var humMin = 70;
+
+    var temMax = 25; //溫度 15度極限
+    var temMin = 20; 
+
+    setup();
+    loop();
+    
+    function WritePHValue(){  
+        var phMax = document.getElementById("phMax").value;
+        var phMin = document.getElementById("phMin").value;
+    }
+    
+
+    //持續取得值
+    function loop() { 
+        if(cpf){
+            rainyVal = cpf.get("a0");
+            humidity = percent(cpf.get("a1"));
+            phVal = PHcha(cpf.get("a2"));
+            redwire = cpf.get("d6");
+            temperature = cpf.get("a3");
+
+            //temperature = 125 * (temperature ** 8);
+            temperature = (5.0 * temperature * 100.0)/1024.0;
+            temperature = (temperature - 32) * 5 / 9 ;
+           
+            PHdec(phVal);
+            humdec(humidity);
+            rainy(rainyVal);
+            RWdec(redwire);
+            
+            document.getElementById("rainyVal").innerHTML = rainyVal;
+            document.getElementById("humidity").innerHTML = humidity.toFixed(0) + "%";
+            document.getElementById("phVal").innerHTML = phVal.toFixed(1);
+            document.getElementById("redwire").innerHTML = redwire;
+            document.getElementById("temperature").innerHTML = temperature.toFixed(0) + "度C";
+
+            setTimeout(cpf.request('["digitalWrite", 2 , 0]'),3000);
+        }
+        setTimeout(loop, 10000);
+    }
+
+    //判斷有無人
+    function RWdec(redwire) {
+        if(redwire == 1){
+            document.getElementById("people").innerHTML = "有人";
+            cpf.request('["digitalWrite", 2 , 1]');
+        }
+        else if(redwire == 0){
+            document.getElementById("people").innerHTML = "無人";
+            cpf.request('["digitalWrite", 2 , 0]');
+        }
+        else{
+            document.getElementById("people").innerHTML = "error";
+            cpf.request('["digitalWrite", 2 , 0]');
+        }
+    }
+
+    //判斷PH
+    function PHdec(key) {
+    if (key < phMax.value && key > phMin.value) 
+        document.getElementById("phResult").innerHTML = "PH值正常";
+    else if(key > phMax.value)
+        document.getElementById("phResult").innerHTML = "PH值偏鹼";
+    else if(key < phMin.value)
+        document.getElementById("phResult").innerHTML = "PH值偏酸";
+    else
+        document.getElementById("phResult").innerHTML = "error";
+}
+
+    //判斷濕度
+    function humdec(key) {
+        if (key < humMax && key > humMin) 
+            document.getElementById("humResult").innerHTML = "濕度正常";
+        else if(key > humMax)
+            document.getElementById("humResult").innerHTML = "濕度過高";
+        else if(key < humMin)
+            document.getElementById("humResult").innerHTML = "濕度過低";
+        else
+            document.getElementById("humResult").innerHTML = "error";
+    }
+
+    //判斷下雨
+    function rainy(key) {
+        if (key >= 700) 
+            document.getElementById("rainResult").innerHTML = "無下雨";
+        
+        else if(key < 700)
+            document.getElementById("rainResult").innerHTML = "下雨中";
+        
+        else
+            document.getElementById("rainResult").innerHTML = "error";
+    }
+    
+    //電壓換算%數
+    function percent(value) {
+        return 100 - (value / 1024 * 100);
+    }
+
+    //轉換PH值
+    function PHcha(x) {
+        return (x / 1023) * 14;
+    }
+
+    //cpf setup
+    function setup(){
+        if(cpf)
+            cpf.setPinMode('["resetPin"], ["setPinMode", "analog", 0, "INPUT"], ["setPinMode", "analog", 1, "INPUT"], ["setPinMode", "analog", 2, "INPUT"], ["setPinMode", "analog", 3, "INPUT"], ["setPinMode", "digital", 6, "INPUT"], ["setPinMode", "digital", 2, "OUTPUT"]');
+    }
+    
+</script>
